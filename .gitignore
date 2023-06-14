@@ -4,3 +4,5 @@ output/*
 __pycache__
 wandb
 csv_data/*
+sparse_embedding.bin
+tfidv.bin

@@ -18,15 +18,17 @@ from utils_taemin import (compute_metrics, data_collators,
 
 def main():
 
-    model_name = os.path.join(os.path.abspath(os.path.dirname(__file__)), "checkpoint/checkpoint-2994")
+    model_name = os.path.join(os.path.abspath(os.path.dirname(__file__)), "checkpoint/checkpoint-15")
 
     config = AutoConfig.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForQuestionAnswering.from_pretrained(model_name,config=config)
 
     datasets = run_sparse_retrieval(
-        tokenizer.tokenize, pd.read_csv(os.path.join(os.path.abspath(os.path.dirname(__file__)), "csv_data/test_data.csv")),
+        tokenizer.tokenize, pd.read_csv(os.path.join(os.path.abspath(os.path.dirname(__file__)), "csv_data/test_data.csv"))[:16],
     )
+
+    examples = datasets["validation"].to_pandas()
 
     test_data = Preprocess(tokenizer=tokenizer,dataset=datasets['validation'],state='val').output_data
 
@@ -45,14 +47,16 @@ def main():
         dataloader_num_workers=0,
         logging_steps=50,
         seed=42,
-        group_by_length=True
+        group_by_length=True,
+        do_eval=False,
+        do_predict=True
     )
     trainer = QuestionAnsweringTrainer(
         model=model,
         args=args,
         train_dataset=None,
         eval_dataset=test_data,
-        eval_examples=datasets["validation"],
+        eval_examples=examples,
         tokenizer=tokenizer,
         data_collator=data_collator,
         post_process_function=post_processing_function,
@@ -60,7 +64,7 @@ def main():
     )
 
     predictions = trainer.predict(
-        test_dataset=test_data, test_examples=datasets["validation"]
+        test_dataset=test_data, test_examples=examples
     )
 
     print(1)

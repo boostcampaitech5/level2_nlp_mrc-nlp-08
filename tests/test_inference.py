@@ -35,6 +35,8 @@ def test_inference(request):
         tokenize_fn=tokenizer.tokenize, data_path = os.path.join(os.path.dirname(os.path.abspath(os.path.dirname(__file__))), "dummy_data"), datasets=pd.read_csv(os.path.join(os.path.abspath(os.path.dirname(__file__)), "../dummy_data/test_data.csv"))[:16],
     )
 
+    examples = datasets["validation"].to_pandas()
+
     test_data = Preprocess(tokenizer=tokenizer,dataset=datasets['validation'],state='val').output_data
 
     data_collator = data_collators(tokenizer)
@@ -52,14 +54,16 @@ def test_inference(request):
         dataloader_num_workers=0,
         logging_steps=50,
         seed=42,
-        group_by_length=True
+        group_by_length=True,
+        do_eval=False,
+        do_predict=True
     )
     trainer = QuestionAnsweringTrainer(
         model=model,
         args=args,
         train_dataset=None,
         eval_dataset=test_data,
-        eval_examples=datasets["validation"],
+        eval_examples=examples,
         tokenizer=tokenizer,
         data_collator=data_collator,
         post_process_function=post_processing_function,
@@ -67,7 +71,7 @@ def test_inference(request):
     )
 
     predictions = trainer.predict(
-        test_dataset=test_data, test_examples=datasets["validation"]
+        test_dataset=test_data, test_examples=examples
     )
 
 def test_output():
