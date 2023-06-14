@@ -16,16 +16,14 @@ from utils_taemin import (compute_metrics, data_collators,
                           post_processing_function, run_sparse_retrieval)
 
 
-def main():
-
-    model_name = os.path.join(os.path.abspath(os.path.dirname(__file__)), "checkpoint/checkpoint-15")
+def main(model_name, data_path):
 
     config = AutoConfig.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForQuestionAnswering.from_pretrained(model_name,config=config)
 
     datasets = run_sparse_retrieval(
-        tokenizer.tokenize, pd.read_csv(os.path.join(os.path.abspath(os.path.dirname(__file__)), "csv_data/test_data.csv")),
+        tokenize_fn=tokenizer.tokenize, data_path=data_path, datasets=pd.read_csv(os.path.join(data_path, "test_data.csv"))
     )
 
     examples = datasets["validation"].to_pandas()
@@ -69,4 +67,6 @@ def main():
 
     print(1)
 if __name__ == "__main__":
-    main()
+    model_name = os.path.join(os.path.abspath(os.path.dirname(__file__)), "checkpoint/checkpoint-15")
+    data_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "csv_data")
+    main(model_name=model_name, data_path=data_path)
