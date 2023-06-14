@@ -1,64 +1,70 @@
+import pandas as pd
 import torch
+from numpy import array
 
-from utils_qa import check_no_error
 
-class Preprocess():
-    def __init__(self,tokenizer,dataset,state):
-        self.tokenizer = tokenizer
-        self.dataset = dataset
+class Dataset(torch.utils.data.Dataset):
+    def __init__(
+        self,
+        dataframe,
+        state,
+        tokenizer
+    ):
+        self.dataframe = dataframe
         self.state = state
-        self.output_data = self.preprocessing(self.tokenizer,self.tokenizer,self.state)
-    def preprocessing(self,tokenizer,dataset,state):
-        column_names = self.dataset.column_names
+        self.tokenizer = tokenizer
+        self.pad_on_right = tokenizer.padding_side == "right"
+
+        column_names = self.dataframe.columns.tolist()
 
         self.question_column_name = "question" if "question" in column_names else column_names[0]
         self.context_column_name = "context" if "context" in column_names else column_names[1]
-        self.answer_column_name = "answers" if "answers" in column_names else column_names[2]
 
-        self.pad_on_right = tokenizer.padding_side == "right"
+        if self.state == "valid":
+            self.dataset = self.validation_preprocessing(self.dataframe)
+        else:
+            self.dataset = self.train_preprocessing(self.dataframe)
 
-        if state == 'train':
-            dataset = self.dataset.map(
-                self.prepare_train_features,
-                batched=True,
-                num_proc=4,
-                remove_columns=column_names,
-                load_from_cache_file = False,
-            )
-        elif state == 'val':
-            dataset = self.dataset.map(
-                self.prepare_validation_features,
-                batched=True,
-                num_proc=4,
-                remove_columns=column_names,
-                load_from_cache_file=False,
-            )
+    def __getitem__(self, idx):
+        if self.state == "valid":
+            return {
+                "input_ids": torch.tensor(self.dataset["input_ids"][idx]),
+                "attention_mask": torch.tensor(self.dataset["attention_mask"][idx]),
+                "offset_mapping": self.dataset["offset_mapping"][idx],
+                "example_id": self.dataset["example_id"][idx]
+            }
+        else:
+            return {
+                "input_ids": torch.tensor(self.dataset["input_ids"][idx]),
+                "attention_mask": torch.tensor(self.dataset["attention_mask"][idx]),
+                "start_positions": self.dataset["start_positions"][idx],
+                "end_positions": self.dataset["end_positions"][idx]
+            }
+    
+    def __len__(self):
+        return len(self.dataset["input_ids"])
 
-        return dataset
+    
 
 
-    def prepare_train_features(self,examples):
-        # truncation과 padding(length가 짧을때만)을 통해 toknization을 진행하며, stride를 이용하여 overflow를 유지합니다.
-        # 각 example들은 이전의 context와 조금씩 겹치게됩니다.
+    def train_preprocessing(self, dataframe: pd.DataFrame):
         tokenized_examples = self.tokenizer(
-            examples[self.question_column_name if self.pad_on_right else self.context_column_name],
-            examples[self.context_column_name if self.pad_on_right else self.question_column_name],
+            dataframe[self.question_column_name if self.pad_on_right else self.context_column_name].tolist(),
+            dataframe[self.context_column_name if self.pad_on_right else self.question_column_name].tolist(),
             truncation="only_second" if self.pad_on_right else "only_first",
             max_length=384,
             stride=128,
             return_overflowing_tokens=True,
             return_offsets_mapping=True,
-            return_token_type_ids=False,  # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.
+            return_token_type_ids=False,
             padding="max_length"
         )
+        # tokenized.append(tokenized_examples)
 
-        # 길이가 긴 context가 등장할 경우 truncate를 진행해야하므로, 해당 데이터셋을 찾을 수 있도록 mapping 가능한 값이 필요합니다.
         sample_mapping = tokenized_examples.pop("overflow_to_sample_mapping")
-        # token의 캐릭터 단위 position를 찾을 수 있도록 offset mapping을 사용합니다.
-        # start_positions과 end_positions을 찾는데 도움을 줄 수 있습니다.
+
         offset_mapping = tokenized_examples.pop("offset_mapping")
 
-        # 데이터셋에 "start position", "enc position" label을 부여합니다.
         tokenized_examples["start_positions"] = []
         tokenized_examples["end_positions"] = []
 
@@ -71,7 +77,7 @@ class Preprocess():
 
             # 하나의 example이 여러개의 span을 가질 수 있습니다.
             sample_index = sample_mapping[i]
-            answers = examples['answers'][sample_index]
+            answers = eval(dataframe['answers'][sample_index])
 
             # answer가 없을 경우 cls_index를 answer로 설정합니다(== example에서 정답이 없는 경우 존재할 수 있음).
             if len(answers["answer_start"]) == 0:
@@ -115,12 +121,12 @@ class Preprocess():
         return tokenized_examples
 
 
-    def prepare_validation_features(self,examples):
+    def validation_preprocessing(self,dataframe):
         # truncation과 padding(length가 짧을때만)을 통해 toknization을 진행하며, stride를 이용하여 overflow를 유지합니다.
         # 각 example들은 이전의 context와 조금씩 겹치게됩니다.
         tokenized_examples = self.tokenizer(
-            examples[self.question_column_name if self.pad_on_right else self.context_column_name],
-            examples[self.context_column_name if self.pad_on_right else self.question_column_name],
+            dataframe[self.question_column_name if self.pad_on_right else self.context_column_name].tolist(),
+            dataframe[self.context_column_name if self.pad_on_right else self.question_column_name].tolist(),
             truncation="only_second" if self.pad_on_right else "only_first",
             max_length=384,
             stride=128,
@@ -144,7 +150,7 @@ class Preprocess():
 
             # 하나의 example이 여러개의 span을 가질 수 있습니다.
             sample_index = sample_mapping[i]
-            tokenized_examples["example_id"].append(examples["id"][sample_index])
+            tokenized_examples["example_id"].append(dataframe["id"][sample_index])
 
             # Set to None the offset_mapping을 None으로 설정해서 token position이 context의 일부인지 쉽게 판별 할 수 있습니다.
             tokenized_examples["offset_mapping"][i] = [

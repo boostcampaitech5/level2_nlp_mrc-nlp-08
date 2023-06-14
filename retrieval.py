@@ -8,9 +8,11 @@ from typing import List, Optional, Tuple, Union
 import faiss
 import numpy as np
 import pandas as pd
-from datasets import Dataset, concatenate_datasets, load_from_disk
+from datasets import concatenate_datasets, load_from_disk
 from sklearn.feature_extraction.text import TfidfVectorizer
 from tqdm.auto import tqdm
+
+from dataset import Dataset
 
 
 @contextmanager
@@ -136,7 +138,7 @@ class SparseRetrieval:
             print("Faiss Indexer Saved.")
 
     def retrieve(
-        self, query_or_dataset: Union[str, Dataset], topk: Optional[int] = 1
+        self, query_or_dataset: Union[str, pd.DataFrame], topk: Optional[int] = 1
     ) -> Union[Tuple[List, List], pd.DataFrame]:
 
         """
@@ -171,17 +173,15 @@ class SparseRetrieval:
 
             return (doc_scores, [self.contexts[doc_indices[i]] for i in range(topk)])
 
-        elif isinstance(query_or_dataset, Dataset):
+        elif isinstance(query_or_dataset, pd.DataFrame):
 
             # Retrieve한 Passage를 pd.DataFrame으로 반환합니다.
             total = []
             with timer("query exhaustive search"):
                 doc_scores, doc_indices = self.get_relevant_doc_bulk(
-                    query_or_dataset["question"], k=topk
+                    query_or_dataset["question"].tolist(), k=topk
                 )
-            for idx, example in enumerate(
-                tqdm(query_or_dataset, desc="Sparse retrieval: ")
-            ):
+            for idx, example in tqdm(query_or_dataset.iterrows(), desc="Sparse retrieval: "):
                 tmp = {
                     # Query와 해당 id를 반환합니다.
                     "question": example["question"],
@@ -191,7 +191,7 @@ class SparseRetrieval:
                         [self.contexts[pid] for pid in doc_indices[idx]]
                     ),
                 }
-                if "context" in example.keys() and "answers" in example.keys():
+                if "context" in example.index.tolist() and "answers" in example.index.tolist():
                     # validation 데이터를 사용하면 ground_truth context와 answer도 반환합니다.
                     tmp["original_context"] = example["context"]
                     tmp["answers"] = example["answers"]

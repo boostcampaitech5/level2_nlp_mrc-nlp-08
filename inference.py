@@ -1,26 +1,34 @@
 #Code refactoringe by Tae min Kim
-from datasets import DatasetDict, load_from_disk
-from transformers import AutoModelForQuestionAnswering, AutoConfig, AutoTokenizer, DataCollatorWithPadding, Trainer, \
-    TrainingArguments, HfArgumentParser
+import os
 
-from arguments import ModelArguments, DataTrainingArguments
+import pandas as pd
+from datasets import DatasetDict, load_from_disk
+from transformers import (AutoConfig, AutoModelForQuestionAnswering,
+                          AutoTokenizer, DataCollatorWithPadding,
+                          HfArgumentParser, Trainer, TrainingArguments)
+
+from arguments import DataTrainingArguments, ModelArguments
 from data_preprocessing import Preprocess
-from utils_taemin import data_collators, post_processing_function, compute_metrics, run_sparse_retrieval
+from dataset import Dataset
 from QA_trainer import QuestionAnsweringTrainer
+from utils import config_parser
+from utils_taemin import (compute_metrics, data_collators,
+                          post_processing_function, run_sparse_retrieval)
+
 
 def main():
-    dataset_path = 'data/test_dataset/'
-    datasets = load_from_disk(dataset_path)
 
-    model_name = './checkpoint/checkpoint-1996'
+    model_name = os.path.join(os.path.abspath(os.path.dirname(__file__)), "checkpoint/checkpoint-15")
 
     config = AutoConfig.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForQuestionAnswering.from_pretrained(model_name,config=config)
 
     datasets = run_sparse_retrieval(
-        tokenizer.tokenize, datasets,
+        tokenizer.tokenize, pd.read_csv(os.path.join(os.path.abspath(os.path.dirname(__file__)), "csv_data/test_data.csv")),
     )
+
+    examples = datasets["validation"].to_pandas()
 
     test_data = Preprocess(tokenizer=tokenizer,dataset=datasets['validation'],state='val').output_data
 
@@ -28,7 +36,7 @@ def main():
 
 
     args = TrainingArguments(
-        output_dir='output',
+        output_dir=os.path.join(os.path.abspath(os.path.dirname(__file__)), "output"),
         evaluation_strategy="epoch",
         save_strategy="epoch",
         learning_rate=2e-5,
@@ -39,14 +47,16 @@ def main():
         dataloader_num_workers=0,
         logging_steps=50,
         seed=42,
-        group_by_length=True
+        group_by_length=True,
+        do_eval=False,
+        do_predict=True
     )
     trainer = QuestionAnsweringTrainer(
         model=model,
         args=args,
         train_dataset=None,
         eval_dataset=test_data,
-        eval_examples=datasets["validation"],
+        eval_examples=examples,
         tokenizer=tokenizer,
         data_collator=data_collator,
         post_process_function=post_processing_function,
@@ -54,7 +64,7 @@ def main():
     )
 
     predictions = trainer.predict(
-        test_dataset=test_data, test_examples=datasets["validation"]
+        test_dataset=test_data, test_examples=examples
     )
 
     print(1)
