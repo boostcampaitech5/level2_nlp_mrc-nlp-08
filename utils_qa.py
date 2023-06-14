@@ -25,11 +25,13 @@ from typing import Any, Optional, Tuple
 
 import numpy as np
 import torch
-from arguments import DataTrainingArguments, ModelArguments
 from datasets import DatasetDict
 from tqdm.auto import tqdm
-from transformers import PreTrainedTokenizerFast, TrainingArguments, is_torch_available
+from transformers import (PreTrainedTokenizerFast, TrainingArguments,
+                          is_torch_available)
 from transformers.trainer_utils import get_last_checkpoint
+
+from arguments import DataTrainingArguments, ModelArguments
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +124,7 @@ def postprocess_qa_predictions(
     )
 
     # 전체 example들에 대한 main Loop
-    for example_index, example in enumerate(tqdm(examples)):
+    for example_index, example in tqdm(examples.iterrows()): # TODO
         # 해당하는 현재 example index
         feature_indices = features_per_example[example_index]
 

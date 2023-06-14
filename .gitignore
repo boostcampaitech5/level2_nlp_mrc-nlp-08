@@ -1,4 +1,6 @@
 code/*
-data/*
 checkpoint/*
 output/*
+__pycache__
+wandb
+csv_data/*
