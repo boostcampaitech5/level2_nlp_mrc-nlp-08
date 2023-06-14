@@ -25,7 +25,7 @@ def main():
     model = AutoModelForQuestionAnswering.from_pretrained(model_name,config=config)
 
     datasets = run_sparse_retrieval(
-        tokenizer.tokenize, pd.read_csv(os.path.join(os.path.abspath(os.path.dirname(__file__)), "csv_data/test_data.csv"))[:16],
+        tokenizer.tokenize, pd.read_csv(os.path.join(os.path.abspath(os.path.dirname(__file__)), "csv_data/test_data.csv")),
     )
 
     examples = datasets["validation"].to_pandas()

@@ -20,12 +20,13 @@ from utils_taemin import (compute_metrics, data_collators,
 
 
 def test_inference(request):
-    checkpoint_path = request.config.option.checkpoint
-    print(checkpoint_path)
+    # checkpoint_path = request.config.option.checkpoint
+    # print(checkpoint_path)
 
     os.environ["WANDB_DISABLED"] = "true"
 
-    model_name = os.path.join(os.path.dirname(os.path.abspath(os.path.dirname(__file__))), checkpoint_path)
+    checkpoint_path = sorted(os.listdir(os.path.join(os.path.dirname(os.path.abspath(os.path.dirname(__file__))), "checkpoint")), key=lambda x: x)[0]
+    model_name = os.path.join(os.path.dirname(os.path.abspath(os.path.dirname(__file__))), "checkpoint/", checkpoint_path)
 
     config = AutoConfig.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
