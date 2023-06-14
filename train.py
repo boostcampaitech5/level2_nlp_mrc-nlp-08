@@ -22,8 +22,8 @@ def main():
     model_name = 'klue/roberta-large'
 
     config = AutoConfig.from_pretrained(model_name)
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForQuestionAnswering.from_pretrained(model_name,config=config)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, timeout=600)
+    model = AutoModelForQuestionAnswering.from_pretrained(model_name,config=config, timeout=600)
 
     # train_data = Preprocess(tokenizer=tokenizer,dataset=datasets['train'],state='train').output_data
     # val_data = Preprocess(tokenizer=tokenizer,dataset=datasets['validation'],state='val').output_data
