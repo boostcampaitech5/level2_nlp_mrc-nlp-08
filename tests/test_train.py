@@ -16,7 +16,7 @@ from utils_taemin import (compute_metrics, data_collators,
 def test_train():
     os.environ["WANDB_DISABLED"] = "true"
 
-    model_name = 'klue/roberta-large'
+    model_name = 'klue/roberta-small'
 
     config = AutoConfig.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
