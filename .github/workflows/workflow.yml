@@ -33,4 +33,4 @@ jobs:
       
     - name: Test inference.py
       working-directory: ./tests
-      run: pytest test_inference.py --checkpoint=checkpoint/checkpoint-2994
+      run: pytest test_inference.py --checkpoint checkpoint/checkpoint-10

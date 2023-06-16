@@ -1,0 +1,7 @@
+title,context,question,id,answers,document_id,__index_level_0__
+윤슬,k디지털해커톤 우승했다. 다시는 무시하지 마라.,윤슬이 우승한 대회는?,mrc-0-001111,"{'answer_start': array([0]), 'text': array(['k디지털해커톤'], dtype=object)}",14141,1000
+겟엠프응,윤슬의 깅밍대씨가 제일 즐겁게 한 게임이다.,겟엠프응을 제일 재밌게한 사람은?,mrc-0-001112,"{'answer_start': array([4]), 'text': array(['깅밍대'], dtype=object)}",11800,1001
+질다의 전설,윤슬의 레전드 운생언 마스터의 걸작.,질다의 전설은 누가 만들었는가?,mrc-0-001113,"{'answer_start': array([8]), 'text': array(['운생언'], dtype=object)}",11111,1011
+운생언,성북구 궁민대학교의 최연소 교수 출신이다.,운생언이 교수로 재직 중인 학교는?,mrc-0-001114,"{'answer_start': array([4]), 'text': array(['궁민대'], dtype=object)}",12111,1111
+깅밍대,안얌 과고 최고의 스트라이커상을 수상한 레전드 공격수.,깅밍대의 포지션은?,mrc-0-001115,"{'answer_start': array([26]), 'text': array(['공격수'], dtype=object)}",12112,1112
+김두언,안얌 번개 출신의 최고의 주먹왕. 현재 은퇴하여 개발자가 되었다. 주짓수류 번개 초크의 대가이다.,김두언의 은퇴 후 직업은?,mrc-0-001116,"{'answer_start': array([27]), 'text': array(['공격수'], dtype=object)}",12222,1212

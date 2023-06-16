@@ -1,23 +1,20 @@
+import os
+from typing import Callable, Dict, List, Tuple
+
 import evaluate
+import pandas as pd
 import transformers
-from transformers import DataCollatorWithPadding,AutoTokenizer,EvalPrediction
-from datasets import load_from_disk, metric
+from datasets import (Dataset, DatasetDict, Features, Sequence, Value,
+                      load_from_disk, metric)
+from numpy import array
+from transformers import (AutoTokenizer, DataCollatorWithPadding,
+                          EvalPrediction, TrainingArguments)
+
+from arguments import DataTrainingArguments
 from data_preprocessing import Preprocess
 from retrieval import SparseRetrieval
 from utils_qa import postprocess_qa_predictions
-from typing import Callable, Dict, List, Tuple
-from datasets import (
-    Dataset,
-    DatasetDict,
-    Features,
-    Sequence,
-    Value,
-    load_from_disk
-)
-from datasets import DatasetDict, Features
-from transformers import TrainingArguments
 
-from arguments import DataTrainingArguments
 
 def data_collators(tokenizer):
     data_collator = DataCollatorWithPadding(
@@ -30,7 +27,7 @@ def compute_metrics(p: EvalPrediction):
 
 def post_processing_function(examples, features, predictions, training_args):
     # Post-processing: start logits과 end logits을 original context의 정답과 match시킵니다.
-    datasets = load_from_disk('./data/train_dataset')
+    # datasets = load_from_disk(os.path.join(os.path.abspath(os.path.dirname(__file__)), "data/train_dataset/"))
     predictions = postprocess_qa_predictions(
         examples=examples,
         features=features,
@@ -47,8 +44,9 @@ def post_processing_function(examples, features, predictions, training_args):
 
     elif training_args.do_eval:
         references = [
-            {"id": ex["id"], "answers": ex['answers']}
-            for ex in datasets["validation"]
+            {"id": ex["id"], "answers": eval(ex['answers'])}
+            # for ex in datasets["validation"]
+            for _, ex in examples.iterrows()
         ]
         return EvalPrediction(
             predictions=formatted_predictions, label_ids=references
@@ -56,8 +54,8 @@ def post_processing_function(examples, features, predictions, training_args):
 
 def run_sparse_retrieval(
     tokenize_fn: Callable[[str], List[str]],
-    datasets: DatasetDict,
-    data_path: str = "./data",
+    datasets: pd.DataFrame,
+    data_path: str = os.path.join(os.path.abspath(os.path.dirname(__file__)), "csv_data"),
     context_path: str = "wikipedia_documents.json",
 ) -> DatasetDict:
 
@@ -66,14 +64,7 @@ def run_sparse_retrieval(
         tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
     )
     retriever.get_sparse_embedding()
-    p = 1
-    if p==0:
-        retriever.build_faiss(num_clusters=64)
-        df = retriever.retrieve_faiss(
-            datasets["validation"], topk=40
-        )
-    else:
-        df = retriever.retrieve(datasets["validation"], topk=40)
+    df = retriever.retrieve(datasets, topk=40)
 
     # test data 에 대해선 정답이 없으므로 id question context 로만 데이터셋이 구성됩니다.
     k = 1
