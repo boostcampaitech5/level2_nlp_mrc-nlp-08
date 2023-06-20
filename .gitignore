@@ -1,6 +1,8 @@
 code/*
 checkpoint/*
 output/*
+data/*
+local/*
 __pycache__
 wandb
 csv_data/*
