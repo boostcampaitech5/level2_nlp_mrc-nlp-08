@@ -13,6 +13,7 @@ from transformers import (AutoTokenizer, DataCollatorWithPadding,
 from arguments import DataTrainingArguments
 from data_preprocessing import Preprocess
 from retrieval import SparseRetrieval
+from retrieval_bm25 import SparseRetrievalBM25
 from utils_qa import postprocess_qa_predictions
 
 
@@ -57,12 +58,19 @@ def run_sparse_retrieval(
     datasets: pd.DataFrame,
     data_path: str = os.path.join(os.path.abspath(os.path.dirname(__file__)), "csv_data"),
     context_path: str = "wikipedia_documents.json",
+    bm25: bool = False,
 ) -> DatasetDict:
 
     # Query에 맞는 Passage들을 Retrieval 합니다.
-    retriever = SparseRetrieval(
-        tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
-    )
+    if bm25:
+        retriever = SparseRetrievalBM25(
+            tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
+        )
+    else:
+        retriever = SparseRetrieval(
+            tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
+        )    
+
     retriever.get_sparse_embedding()
     df = retriever.retrieve(datasets, topk=40)
 
