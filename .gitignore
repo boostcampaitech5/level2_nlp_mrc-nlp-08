@@ -3,8 +3,6 @@ checkpoint/*
 output/*
 __pycache__
 wandb
-data/*
-local/*
 csv_data/*
 sparse_embedding.bin
 tfidv.bin
