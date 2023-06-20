@@ -12,8 +12,7 @@ from transformers import (AutoTokenizer, DataCollatorWithPadding,
 
 from arguments import DataTrainingArguments
 from data_preprocessing import Preprocess
-from retrieval import SparseRetrieval
-from retrieval_bm25 import SparseRetrievalBM25
+from retrieval import SparseRetrieval, SparseRetrievalBM25
 from utils_qa import postprocess_qa_predictions
 
 
@@ -58,21 +57,25 @@ def run_sparse_retrieval(
     datasets: pd.DataFrame,
     data_path: str = os.path.join(os.path.abspath(os.path.dirname(__file__)), "csv_data"),
     context_path: str = "wikipedia_documents.json",
-    bm25: bool = False,
+    bm25: str = None,
 ) -> DatasetDict:
 
     # Query에 맞는 Passage들을 Retrieval 합니다.
     if bm25:
+        assert bm25 in ["Okapi", "L", "plus"], "Invalid type for BM25 has been passed."
+        print(f"BM25 {bm25} is being used for passage retrieval")
         retriever = SparseRetrievalBM25(
-            tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
+            tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path, bm25_type=bm25
         )
     else:
+        print("TF-IDF is being used for passage retrieval")
         retriever = SparseRetrieval(
             tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
-        )    
+        )
+        retriever.get_sparse_embedding()
 
-    retriever.get_sparse_embedding()
-    df = retriever.retrieve(datasets, topk=40)
+    # retriever.get_sparse_embedding()
+    df = retriever.retrieve(datasets, topk=30)
 
     # test data 에 대해선 정답이 없으므로 id question context 로만 데이터셋이 구성됩니다.
     k = 1

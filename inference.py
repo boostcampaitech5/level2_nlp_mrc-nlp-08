@@ -23,8 +23,8 @@ def main(model_name, data_path):
     model = AutoModelForQuestionAnswering.from_pretrained(model_name,config=config)
 
     datasets = run_sparse_retrieval(
-        tokenize_fn=tokenizer.tokenize, data_path=data_path, datasets=pd.read_csv(os.path.join(data_path, "test_data.csv"))
-    )
+        tokenize_fn=tokenizer.tokenize, data_path=data_path, datasets=pd.read_csv(os.path.join(data_path, "test_data.csv")), bm25=None
+    ) # bm25 => None(TF-IDF), Okapi, L, plus
 
     examples = datasets["validation"].to_pandas()
 
@@ -64,8 +64,7 @@ def main(model_name, data_path):
     predictions = trainer.predict(
         test_dataset=test_data, test_examples=examples
     )
-
-    print(1)
+    
 if __name__ == "__main__":
     model_name = os.path.join(os.path.abspath(os.path.dirname(__file__)), "checkpoint/checkpoint-4990")
     data_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "csv_data")
