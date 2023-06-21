@@ -72,17 +72,17 @@ def main():
         with torch.no_grad():
             output = model.generate(
                 **sample,
-                # num_beams=4,
-                # num_return_sequences=1,
-                # no_repeat_ngram_size=2,
+                num_beams=4,
+                num_return_sequences=1,
+                no_repeat_ngram_size=2,
                 return_dict_in_generate=True,
                 output_scores=True
             ) # output.sequences, output.scores
             output_texts = tokenizer.batch_decode(output.sequences, skip_special_tokens=True)
             # print(output_texts)
 
-            # transition_scores = model.compute_transition_scores(output.sequences, output.scores, output.beam_indices, normalize_logits=True)
-            transition_scores = model.compute_transition_scores(output.sequences, output.scores, normalize_logits=True)
+            transition_scores = model.compute_transition_scores(output.sequences, output.scores, output.beam_indices, normalize_logits=True)
+            # transition_scores = model.compute_transition_scores(output.sequences, output.scores, normalize_logits=True)
             result = list(zip(output_texts, [compute_cumulative_prob(output.sequences[i], transition_scores[i]) for i in range(len(transition_scores))]))
         for id, res in zip(example_id, result):
             # if prediction[id][1] < res[1]:
