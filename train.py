@@ -10,7 +10,7 @@ from dataset import Dataset
 from QA_trainer import QuestionAnsweringTrainer
 from utils_taemin import (compute_metrics, data_collators,
                           post_processing_function)
-
+from model import Custom_RobertaForQuestionAnswering
 
 def main(model_name, data_path):
 
@@ -18,8 +18,8 @@ def main(model_name, data_path):
 
     config = AutoConfig.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForQuestionAnswering.from_pretrained(model_name,config=config)
-
+    #model = AutoModelForQuestionAnswering.from_pretrained(model_name,config=config)
+    model = Custom_RobertaForQuestionAnswering.from_pretrained(model_name,config=config)
     train_data = Dataset(dataframe=pd.read_csv(os.path.join(data_path, "train_data.csv")), state="train", tokenizer=tokenizer)
     val_data = Dataset(dataframe=pd.read_csv(os.path.join(data_path, "validation_data.csv")), state="valid", tokenizer=tokenizer)
 
