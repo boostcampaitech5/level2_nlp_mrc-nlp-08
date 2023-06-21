@@ -9,6 +9,7 @@ import faiss
 import numpy as np
 import pandas as pd
 from datasets import concatenate_datasets, load_from_disk
+from rank_bm25 import BM25L, BM25Okapi, BM25Plus
 from sklearn.feature_extraction.text import TfidfVectorizer
 from tqdm.auto import tqdm
 
@@ -20,7 +21,6 @@ def timer(name):
     t0 = time.time()
     yield
     print(f"[{name}] done in {time.time() - t0:.3f} s")
-
 
 class SparseRetrieval:
     def __init__(
@@ -376,6 +376,98 @@ class SparseRetrieval:
 
         return D.tolist(), I.tolist()
 
+def setup_bm25(parent_class):
+    class CustomBM25(parent_class):
+        def __init__(self, corpus, tokenizer):
+            super().__init__(corpus, tokenizer)
+
+        def get_relevant_doc(self, query, k):
+            query_vec = self.tokenizer(query)
+            result = self.get_scores(query_vec)
+            sorted_result = np.argsort(result.squeeze())[::-1]
+            doc_score = result.squeeze()[sorted_result].tolist()[:k]
+            doc_indices = sorted_result.tolist()[:k]
+            return doc_score, doc_indices
+        
+        def get_relevant_doc_bulk(self, queries, k):
+            doc_scores = []
+            doc_indices = []
+            for query in queries:
+                doc_score, doc_indice = self.get_relevant_doc(query, k)
+                doc_scores.append(doc_score)
+                doc_indices.append(doc_indice)
+            return doc_scores, doc_indices
+    return CustomBM25
+        
+class SparseRetrievalBM25:
+    def __init__(
+        self,
+        tokenize_fn,
+        data_path: Optional[str] = "./csv_data/",
+        context_path: Optional[str] = "wikipedia_documents.json",
+        bm25_type: Optional[str] = ""
+    ) -> None:
+
+        self.data_path = data_path
+        with open(os.path.join(data_path, context_path), "r", encoding="utf-8") as f:
+            wiki = json.load(f)
+
+        self.contexts = list(
+            dict.fromkeys([v["text"] for v in wiki.values()])
+        )  # set 은 매번 순서가 바뀌므로
+        print(f"Lengths of unique contexts : {len(self.contexts)}")
+
+        if bm25_type == "Okapi":
+            bm25_class = setup_bm25(BM25Okapi)
+            self.bm25 = bm25_class(self.contexts, tokenize_fn)
+        elif bm25_type == "L":
+            bm25_class = setup_bm25(BM25L)
+            self.bm25 = bm25_class(self.contexts, tokenize_fn)
+        elif bm25_type == "plus":
+            bm25_class = setup_bm25(BM25Plus)
+            self.bm25 = bm25_class(self.contexts, tokenize_fn)
+
+    def retrieve(
+        self, query_or_dataset: Union[str, pd.DataFrame], topk: Optional[int] = 1
+    ) -> Union[Tuple[List, List], pd.DataFrame]:
+        
+        if isinstance(query_or_dataset, str):
+            doc_scores, doc_indices = self.bm25.get_relevant_doc(query_or_dataset, k=topk)
+            print("[Search query]\n", query_or_dataset, "\n")
+
+            for i in range(topk):
+                print(f"Top-{i+1} passage with score {doc_scores[i]:4f}")
+                print(self.contexts[doc_indices[i]])
+
+            return (doc_scores, [self.contexts[doc_indices[i]] for i in range(topk)])
+
+        elif isinstance(query_or_dataset, pd.DataFrame):
+
+            # Retrieve한 Passage를 pd.DataFrame으로 반환합니다.
+            total = []
+            with timer("query exhaustive search"):
+                doc_scores, doc_indices = self.bm25.get_relevant_doc_bulk(
+                    query_or_dataset["question"].tolist(), k=topk
+                )
+            for idx, example in tqdm(query_or_dataset.iterrows(), desc="Sparse retrieval: "):
+                tmp = {
+                    # Query와 해당 id를 반환합니다.
+                    "question": example["question"],
+                    "id": example["id"],
+                    # Retrieve한 Passage의 id, context를 반환합니다.
+                    "context": " ".join(
+                        [self.contexts[pid] for pid in doc_indices[idx]]
+                    ),
+                }
+                if "context" in example.index.tolist() and "answers" in example.index.tolist():
+                    # validation 데이터를 사용하면 ground_truth context와 answer도 반환합니다.
+                    tmp["original_context"] = example["context"]
+                    tmp["answers"] = example["answers"]
+                total.append(tmp)
+
+            cqas = pd.DataFrame(total)
+            return cqas
+        
 
 if __name__ == "__main__":
 
