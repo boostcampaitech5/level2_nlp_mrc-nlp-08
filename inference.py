@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 from transformers import (AutoConfig, AutoModelForQuestionAnswering,
-                          AutoTokenizer, set_seed, TrainingArguments)
+                          AutoTokenizer, TrainingArguments, set_seed)
 
 from data_preprocessing import Preprocess
 from QA_trainer import QuestionAnsweringTrainer
@@ -19,8 +19,8 @@ def main(model_name, data_path):
     model = AutoModelForQuestionAnswering.from_pretrained(model_name,config=config)
 
     datasets = run_sparse_retrieval(
-        tokenize_fn=tokenizer.tokenize, data_path=data_path, datasets=pd.read_csv(os.path.join(data_path, "test_data.csv"))
-    )
+        tokenize_fn=tokenizer.tokenize, data_path=data_path, datasets=pd.read_csv(os.path.join(data_path, "test_data.csv")), bm25=None
+    ) # bm25 => None(TF-IDF), Okapi, L, plus
 
     examples = datasets["validation"].to_pandas()
     test_data = Preprocess(tokenizer=tokenizer,dataset=datasets['validation'],state='val').output_data
@@ -58,6 +58,7 @@ def main(model_name, data_path):
         test_dataset=test_data, test_examples=examples
     )
 
+    
 if __name__ == "__main__":
     model_name = os.path.join(os.path.abspath(os.path.dirname(__file__)), "checkpoint/checkpoint-4990")
     data_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "csv_data")
