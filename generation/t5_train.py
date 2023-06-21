@@ -27,8 +27,8 @@ def main():
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
     DATA_DIR = os.path.join(os.path.dirname(BASE_DIR), 'csv_data')
 
-    train_data = pd.read_csv(os.path.join(DATA_DIR, 'train_data.csv'))
-    validation_data = pd.read_csv(os.path.join(DATA_DIR, 'validation_data.csv'))
+    train_data = pd.read_csv(os.path.join(DATA_DIR, 'train_data.csv'))[:16]
+    validation_data = pd.read_csv(os.path.join(DATA_DIR, 'validation_data.csv'))[:16]
     #data2 = pd.read_csv(os.path.join(DATA_DIR, 'only_clean_val.csv'))
 
     #data = pd.concat([data,data2])
@@ -82,8 +82,8 @@ def main():
         # 간단한 post-processing
         decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
 
-        formatted_predictions = [{"id": ex["id"], "prediction_text": decoded_preds[i]} for i, ex in validation_data.iterrows()]
-        references = [{"id": ex["id"], "answers": eval(ex["answers"])} for _, ex in validation_data.iterrows()]
+        formatted_predictions = [{"id": validation_dataset[i]["example_id"]+f"-{i}", "prediction_text": decoded_preds[i]} for i in range(len(validation_dataset))]
+        references = [{"id": validation_dataset[i]["example_id"]+f"-{i}", "answers": eval(validation_data[validation_data["id"] == validation_dataset[i]["example_id"]]["answers"].item())} for i in range(len(validation_dataset))]
 
         result = metric.compute(predictions=formatted_predictions, references=references)
         return result
@@ -103,7 +103,8 @@ def main():
         weight_decay=0.01,
         logging_steps = 50,
         dataloader_num_workers=0,
-        save_total_limit=1
+        save_total_limit=1,
+        # include_inputs_for_metrics=True
     )
 
     # Define the fine-tuning trainer
