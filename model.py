@@ -16,8 +16,8 @@ class Custom_RobertaForQuestionAnswering(RobertaPreTrainedModel):
         self.num_labels = config.num_labels
 
         self.roberta = RobertaModel(config, add_pooling_layer=False)
-        self.preprocess_qa_outputs_1 = nn.Linear(1024,2048)
-        self.preprocess_qa_outputs_2 = nn.Linear(2048,1024)
+        self.preprocess_qa_outputs_1 = nn.Linear(config.hidden_size,config.hidden_size*2)
+        self.preprocess_qa_outputs_2 = nn.Linear(config.hidden_size*2,config.hidden_size)
         self.qa_outputs = nn.Linear(config.hidden_size, config.num_labels)
 
 
