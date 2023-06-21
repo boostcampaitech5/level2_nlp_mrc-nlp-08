@@ -26,8 +26,8 @@ def main(model_name, data_path):
     # train_data = Preprocess(tokenizer=tokenizer,dataset=datasets['train'],state='train').output_data
     # val_data = Preprocess(tokenizer=tokenizer,dataset=datasets['validation'],state='val').output_data
 
-    train_data = Dataset(dataframe=pd.read_csv(os.path.join(data_path, "train_data.csv")), state="train", tokenizer=tokenizer)
-    val_data = Dataset(dataframe=pd.read_csv(os.path.join(data_path, "validation_data.csv")), state="valid", tokenizer=tokenizer)
+    train_data = Dataset(dataframe=pd.read_csv(os.path.join(data_path, "train_data.csv"))[:16], state="train", tokenizer=tokenizer)
+    val_data = Dataset(dataframe=pd.read_csv(os.path.join(data_path, "validation_data.csv"))[:16], state="valid", tokenizer=tokenizer)
 
     data_collator = data_collators(tokenizer)
 
