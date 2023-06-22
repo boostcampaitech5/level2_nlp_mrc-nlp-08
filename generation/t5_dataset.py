@@ -41,6 +41,7 @@ class T5Dataset(Dataset):
                 'input_ids': torch.tensor(self.dataset['input_ids'][idx]),
                 'attention_mask': torch.tensor(self.dataset['attention_mask'][idx]),
                 'labels': torch.tensor(self.dataset["labels"][idx]),
+                "example_id": self.dataset["example_id"][idx]
             }
 
     def __len__(self):
@@ -68,9 +69,11 @@ class T5Dataset(Dataset):
         sample_mapping = tokenized_examples.pop("overflow_to_sample_mapping")
 
         tokenized_examples["labels"] = []
+        tokenized_examples["example_id"] = []
 
         for sample_index in sample_mapping:
             tokenized_examples["labels"].append(labels["input_ids"][sample_index])
+            tokenized_examples["example_id"].append(dataframe["id"][sample_index])
 
         return tokenized_examples
 
