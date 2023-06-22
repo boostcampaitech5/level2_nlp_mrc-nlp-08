@@ -1,26 +1,24 @@
 import os
 import sys
-import torch
 
-from transformers import (
-    AutoModelForMaskedLM,
-    AutoTokenizer,
-    DataCollatorForLanguageModeling,
-    Trainer,
-    TrainingArguments,
-)
+import torch
+from transformers import (AutoTokenizer, DataCollatorForLanguageModeling,
+                          T5ForConditionalGeneration, Trainer,
+                          TrainingArguments)
 
 from dataset import TaptDataSet
 
 
 def main():
-    MODEL_NAME = "klue/roberta-large"
+    MODEL_NAME = "paust/pko-t5-large"
 
     DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     BASE_DIR = os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-    model = AutoModelForMaskedLM.from_pretrained(MODEL_NAME).to(DEVICE)
+    tokenizer.add_special_tokens({"mask_token": '[MASK]'})
+    model = T5ForConditionalGeneration.from_pretrained(MODEL_NAME)
+    model.resize_token_embeddings(len(tokenizer))
 
     dataset = TaptDataSet(
         [os.path.join(BASE_DIR, "csv_data/train_data.csv"), os.path.join(BASE_DIR, "csv_data/validation_data.csv"), os.path.join(BASE_DIR, "csv_data/test_data.csv")], tokenizer=tokenizer

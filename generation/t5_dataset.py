@@ -14,6 +14,8 @@ class T5Dataset(Dataset):
         state,
         tokenizer
     ):
+        dataframe.question = "질문: " + dataframe.question
+        dataframe.context = " 본문: " + dataframe.context
         self.dataframe = dataframe
         self.state = state
         self.tokenizer = tokenizer
