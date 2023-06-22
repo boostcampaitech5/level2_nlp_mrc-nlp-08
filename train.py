@@ -1,5 +1,4 @@
 import os
-
 import pandas as pd
 from transformers import (AutoConfig, AutoModelForQuestionAnswering,
                           AutoTokenizer, TrainingArguments, set_seed)
@@ -10,21 +9,27 @@ from utils_taemin import (compute_metrics, data_collators,
 from model import Custom_RobertaForQuestionAnswering
 
 
-def main(model_name, data_path, eval_as_test=False):
-
-    set_seed(42)
+def main(model_name, data_path):
+    
+    eval_as_test = False
+    skip_train = False
+    base_model = AutoModelForQuestionAnswering # Custom_RobertaForQuestionAnswering
+    bm25 = None # None(TF-IDF), "Okapi", "L", "plus"
+    
+    seed = 42
+    set_seed(seed)
 
     config = AutoConfig.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    #model = AutoModelForQuestionAnswering.from_pretrained(model_name,config=config)
-    model = Custom_RobertaForQuestionAnswering.from_pretrained(model_name,config=config)
+    model = base_model.from_pretrained(model_name,config=config)
     train_data = Dataset(dataframe=pd.read_csv(os.path.join(data_path, "train_data.csv")), state="train", tokenizer=tokenizer)
     eval_data_df = pd.read_csv(os.path.join(data_path, "validation_data.csv"))
 
     if eval_as_test:
         datasets = run_sparse_retrieval(
-            tokenize_fn=tokenizer.tokenize, data_path=data_path, datasets=eval_data_df.drop(["context"], axis=1), bm25="plus"
-        ) # bm25 => None(TF-IDF), Okapi, L, plus
+            tokenize_fn=tokenizer.tokenize, data_path=data_path, datasets=eval_data_df.drop(["context"], axis=1), 
+            bm25=bm25, context_path="wikipedia_documents.json"
+        )
         extracted_context = datasets["validation"]["context"]
         eval_examples = eval_data_df.assign(context=extracted_context)
         eval_data = Dataset(dataframe=eval_examples, state="valid", tokenizer=tokenizer)
@@ -45,7 +50,7 @@ def main(model_name, data_path, eval_as_test=False):
         num_train_epochs=3,
         dataloader_num_workers=4,
         logging_steps=50,
-        seed=42,
+        seed=seed,
         group_by_length=True
     )
     trainer = QuestionAnsweringTrainer(
@@ -59,9 +64,13 @@ def main(model_name, data_path, eval_as_test=False):
         post_process_function=post_processing_function,
         compute_metrics=compute_metrics,
     )
-    trainer.train()
+
+    if skip_train:
+        trainer.evaluate()
+    else:
+        trainer.train()
 
 if __name__ == "__main__":
     model_name = 'klue/roberta-large'
     data_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "csv_data")
-    main(model_name=model_name, data_path=data_path, eval_as_test=True)
+    main(model_name=model_name, data_path=data_path)
