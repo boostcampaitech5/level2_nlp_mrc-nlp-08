@@ -8,7 +8,7 @@ from data_preprocessing import Preprocess
 from QA_trainer import QuestionAnsweringTrainer
 from utils_taemin import (compute_metrics, data_collators,
                           post_processing_function, run_sparse_retrieval)
-
+from model import Custom_RobertaForQuestionAnswering
 
 def main(model_name, data_path):
 
@@ -16,10 +16,11 @@ def main(model_name, data_path):
 
     config = AutoConfig.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForQuestionAnswering.from_pretrained(model_name,config=config)
+    #model = AutoModelForQuestionAnswering.from_pretrained(model_name,config=config)
+    model = Custom_RobertaForQuestionAnswering.from_pretrained(model_name,config=config)
 
     datasets = run_sparse_retrieval(
-        tokenize_fn=tokenizer.tokenize, data_path=data_path, datasets=pd.read_csv(os.path.join(data_path, "test_data.csv")), bm25=None
+        tokenize_fn=tokenizer.tokenize, data_path=data_path, datasets=pd.read_csv(os.path.join(data_path, "test_data.csv")), bm25='plus'
     ) # bm25 => None(TF-IDF), Okapi, L, plus
 
     examples = datasets["validation"].to_pandas()
@@ -60,6 +61,6 @@ def main(model_name, data_path):
 
     
 if __name__ == "__main__":
-    model_name = os.path.join(os.path.abspath(os.path.dirname(__file__)), "checkpoint/checkpoint-4990")
+    model_name = os.path.join(os.path.abspath(os.path.dirname(__file__)), "checkpoint/checkpoint-2994")
     data_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "csv_data")
     main(model_name=model_name, data_path=data_path)
