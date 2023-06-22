@@ -61,6 +61,6 @@ def main(model_name, data_path):
 
     
 if __name__ == "__main__":
-    model_name = os.path.join(os.path.abspath(os.path.dirname(__file__)), "checkpoint/checkpoint-2994")
+    model_name = os.path.join(os.path.abspath(os.path.dirname(__file__)), "checkpoint/checkpoint-1996")
     data_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "csv_data")
     main(model_name=model_name, data_path=data_path)
