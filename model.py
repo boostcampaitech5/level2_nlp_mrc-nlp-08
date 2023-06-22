@@ -4,8 +4,29 @@ import torch
 from torch import nn
 from torch.nn import CrossEntropyLoss
 from transformers import RobertaModel, RobertaPreTrainedModel
+from transformers.activations import gelu
 from transformers.modeling_outputs import QuestionAnsweringModelOutput
+class RobertaLMHead(nn.Module):
+    """Roberta Head for masked language modeling."""
 
+    def __init__(self, config):
+        super().__init__()
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size)
+        self.layer_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
+
+        self.decoder = nn.Linear(config.hidden_size, config.num_labels)
+        self.bias = nn.Parameter(torch.zeros(config.num_labels))
+        self.decoder.bias = self.bias
+
+    def forward(self, features, **kwargs):
+        x = self.dense(features)
+        x = gelu(x)
+        x = self.layer_norm(x)
+
+        # project back to size of vocabulary with bias
+        x = self.decoder(x + features)
+
+        return x
 
 class Custom_RobertaForQuestionAnswering(RobertaPreTrainedModel):
     _keys_to_ignore_on_load_unexpected = [r"pooler"]
@@ -16,8 +37,7 @@ class Custom_RobertaForQuestionAnswering(RobertaPreTrainedModel):
         self.num_labels = config.num_labels
 
         self.roberta = RobertaModel(config, add_pooling_layer=False)
-        self.preprocess_qa_outputs_1 = nn.Linear(config.hidden_size,config.hidden_size*2)
-        self.preprocess_qa_outputs_2 = nn.Linear(config.hidden_size*2,config.hidden_size)
+        self.preprocess_qa_LMHead = RobertaLMHead(config)
         self.qa_outputs = nn.Linear(config.hidden_size, config.num_labels)
 
 
@@ -63,11 +83,15 @@ class Custom_RobertaForQuestionAnswering(RobertaPreTrainedModel):
 
         sequence_output = outputs[0]
 
-        sequence_output = self.preprocess_qa_outputs_1(sequence_output)
-        sequence_output = torch.relu(sequence_output)
-        sequence_output = self.preprocess_qa_outputs_2(sequence_output)
+        #sequence_output_feed = self.preprocess_qa_outputs_1(sequence_output)
+        #sequence_output_feed = torch.relu(sequence_output)
+        #sequence_output_feed = self.preprocess_qa_outputs_2(sequence_output)
 
-        logits = self.qa_outputs(sequence_output)
+        #sequence_output_feed = self.preprocess_qa_dropout(sequence_output_feed)
+
+
+
+        logits = self.preprocess_qa_LMHead(sequence_output)
         start_logits, end_logits = logits.split(1, dim=-1)
         start_logits = start_logits.squeeze(-1).contiguous()
         end_logits = end_logits.squeeze(-1).contiguous()
