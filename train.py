@@ -8,7 +8,6 @@ from utils_taemin import (compute_metrics, data_collators,
                           post_processing_function, run_sparse_retrieval)
 from model import Custom_RobertaForQuestionAnswering
 
-
 def main(model_name, data_path):
     
     eval_as_test = False
@@ -44,10 +43,10 @@ def main(model_name, data_path):
         output_dir=os.path.join(os.path.abspath(os.path.dirname(__file__)), "checkpoint"),
         evaluation_strategy="epoch",
         save_strategy="epoch",
-        learning_rate=3e-5,
+        learning_rate=9e-6,
         per_device_train_batch_size=8,
         per_device_eval_batch_size=8,
-        num_train_epochs=3,
+        num_train_epochs=5,
         dataloader_num_workers=4,
         logging_steps=50,
         seed=seed,

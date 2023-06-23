@@ -10,7 +10,7 @@ from tqdm.auto import tqdm
 from transformers import (AutoModelForSeq2SeqLM, AutoTokenizer,
                           DataCollatorForSeq2Seq, EvalPrediction,
                           Seq2SeqTrainer, Seq2SeqTrainingArguments,
-                          T5ForConditionalGeneration, T5Tokenizer)
+                          T5ForConditionalGeneration, T5Tokenizer,T5ForConditionalGeneration)
 
 from t5_dataset import T5Dataset
 
