@@ -11,6 +11,8 @@ pip install pandas
 pip install scikit-learn
 pip install pytest
 pip install pytest-mock
+pip install nltk
+pip install rank_bm25
 
 # faiss install (if you want to)
 pip install faiss-gpu
